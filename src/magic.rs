@@ -391,7 +391,7 @@ pub fn patterns() -> Vec<signatures::common::Signature> {
             description: signatures::lzop::DESCRIPTION.to_string(),
             extractor: Some(extractors::lzop::lzop_extractor()),
         },
-        // lzop
+        // pe
         signatures::common::Signature {
             name: "pe".to_string(),
             short: false,
@@ -400,7 +400,7 @@ pub fn patterns() -> Vec<signatures::common::Signature> {
             magic: signatures::pe::pe_magic(),
             parser: signatures::pe::pe_parser,
             description: signatures::pe::DESCRIPTION.to_string(),
-            extractor: None,
+            extractor: Some(extractors::pe::pe_extractor()),
         },
         // zlib
         signatures::common::Signature {

@@ -73,6 +73,8 @@ pub struct Binwalk {
     pub base_target_file: String,
     /// The base output directory for extracted files
     pub base_output_directory: String,
+    /// If true, scan all offsets including inside identified file structures
+    pub full_search: bool,
     /// A list of signatures that must start at offset 0
     pub short_signatures: Vec<signatures::common::Signature>,
     /// A list of magic bytes to search for throughout the entire file
@@ -137,6 +139,7 @@ impl Binwalk {
         full_search: bool,
     ) -> Result<Binwalk, BinwalkError> {
         let mut new_instance = Binwalk {
+            full_search,
             ..Default::default()
         };
 
@@ -392,8 +395,10 @@ impl Binwalk {
                         signature_result.name, signature_result.offset
                     );
 
-                    // Only update the next_valid_offset if confidence is at least medium
-                    if signature_result.confidence >= signatures::common::CONFIDENCE_MEDIUM {
+                    // Only update the next_valid_offset if confidence is at least medium and full_search is not enabled
+                    if !self.full_search
+                        && signature_result.confidence >= signatures::common::CONFIDENCE_MEDIUM
+                    {
                         // Only update the next_valid offset if the end of the signature reported the size of its contents
                         if signature_result.size > 0 {
                             // This file's signature has a known size, so there's no need to scan inside this file's data.
@@ -402,6 +407,10 @@ impl Binwalk {
                             next_valid_offset = signature_end_offset;
                             break;
                         }
+                    } else if self.full_search {
+                        // In full_search mode, increment by 1 to ensure we continue scanning byte-by-byte
+                        // after finding a signature, but don't break the loop
+                        debug!("Full search mode: continuing scan after signature at offset {:#X}", magic_offset);
                     }
                 } else {
                     debug!(
@@ -476,7 +485,8 @@ impl Binwalk {
                 }
 
             // Else, if the offsets don't conflict, make sure this signature doesn't fall inside a previously identified signature's data
-            } else if this_signature.offset < next_valid_offset {
+            // Unless full_search mode is enabled, in which case we want to find all signatures everywhere
+            } else if !self.full_search && this_signature.offset < next_valid_offset {
                 debug!(
                     "Signature {} at offset {:#X} contains conflicting data; ignoring",
                     this_signature.name, this_signature.offset

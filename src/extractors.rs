@@ -170,6 +170,7 @@ pub mod matter_ota;
 pub mod mbr;
 pub mod mh01;
 pub mod pcap;
+pub mod pe;
 pub mod pem;
 pub mod png;
 pub mod rar;

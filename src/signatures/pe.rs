@@ -1,5 +1,5 @@
 use crate::signatures::common::{CONFIDENCE_MEDIUM, SignatureError, SignatureResult};
-use crate::structures::pe::parse_pe_header;
+use crate::structures::pe::{parse_pe_file, parse_pe_header};
 
 /// Human readable description
 pub const DESCRIPTION: &str = "Windows PE binary";
@@ -26,7 +26,17 @@ pub fn pe_parser(file_data: &[u8], offset: usize) -> Result<SignatureResult, Sig
         ..Default::default()
     };
 
-    // Parse the PE header
+    // Try to parse the full PE file to get size information
+    if let Ok(pe_file) = parse_pe_file(&file_data[offset..]) {
+        result.size = pe_file.size;
+        result.description = format!(
+            "{}, machine type: {}, size: {} bytes",
+            result.description, pe_file.machine, pe_file.size
+        );
+        return Ok(result);
+    }
+
+    // Fallback to just parsing the header if full parse fails
     if let Ok(pe_header) = parse_pe_header(&file_data[offset..]) {
         result.description = format!(
             "{}, machine type: {}",
